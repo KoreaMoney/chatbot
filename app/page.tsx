@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import Link from 'next/link'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -100,6 +101,11 @@ export default function Home() {
       let assistantContent = ''
       let toolCalls: Message['toolCalls'] = []
       let assistantMessageAdded = false
+      let tokenUsage: {
+        promptTokens?: number
+        completionTokens?: number
+        totalTokens?: number
+      } = {}
 
       if (reader) {
         while (true) {
@@ -169,6 +175,37 @@ export default function Home() {
                       : JSON.stringify(toolResult, null, 2)
                   }
                 }
+                // LLM 종료 이벤트 - 토큰 사용량 추출
+                else if (
+                  data.event === 'on_chat_model_end' || 
+                  data.event === 'on_llm_end' ||
+                  data.event === 'on_chain_end'
+                ) {
+                  // 다양한 경로에서 토큰 사용량 추출 시도
+                  const usage = 
+                    data.data?.output?.response_metadata?.usage ||
+                    data.data?.response_metadata?.usage ||
+                    data.data?.output?.usage ||
+                    data.data?.usage ||
+                    data.output?.response_metadata?.usage ||
+                    data.output?.usage ||
+                    data.usage ||
+                    data.data?.response_metadata?.token_usage
+                  
+                  if (usage) {
+                    const promptTokens = usage.prompt_tokens || usage.promptTokens || 0
+                    const completionTokens = usage.completion_tokens || usage.completionTokens || 0
+                    const totalTokens = usage.total_tokens || usage.totalTokens || (promptTokens + completionTokens)
+                    
+                    if (totalTokens > 0) {
+                      tokenUsage = {
+                        promptTokens: (tokenUsage.promptTokens || 0) + promptTokens,
+                        completionTokens: (tokenUsage.completionTokens || 0) + completionTokens,
+                        totalTokens: (tokenUsage.totalTokens || 0) + totalTokens,
+                      }
+                    }
+                  }
+                }
               } catch (err) {
                 console.error('JSON 파싱 오류:', err, line)
               }
@@ -195,6 +232,30 @@ export default function Home() {
           return newMessages
         })
       }
+
+      // 토큰 사용량 저장
+      if (tokenUsage.totalTokens && tokenUsage.totalTokens > 0) {
+        try {
+          const storedUsage = localStorage.getItem('token_usage')
+          const currentUsage = storedUsage ? JSON.parse(storedUsage) : {
+            totalPromptTokens: 0,
+            totalCompletionTokens: 0,
+            totalTokens: 0,
+            requestCount: 0,
+            lastUpdated: new Date().toISOString(),
+          }
+          
+          currentUsage.totalPromptTokens = (currentUsage.totalPromptTokens || 0) + (tokenUsage.promptTokens || 0)
+          currentUsage.totalCompletionTokens = (currentUsage.totalCompletionTokens || 0) + (tokenUsage.completionTokens || 0)
+          currentUsage.totalTokens = (currentUsage.totalTokens || 0) + (tokenUsage.totalTokens || 0)
+          currentUsage.requestCount = (currentUsage.requestCount || 0) + 1
+          currentUsage.lastUpdated = new Date().toISOString()
+          
+          localStorage.setItem('token_usage', JSON.stringify(currentUsage))
+        } catch (error) {
+          console.error('토큰 사용량 저장 오류:', error)
+        }
+      }
     } catch (error) {
       console.error('에러:', error)
       setMessages((prev) => [
@@ -216,16 +277,45 @@ export default function Home() {
     }
   }
 
+  const handleNewChat = () => {
+    // 세션 스토리지에서 thread_id 제거하여 새 대화 시작
+    sessionStorage.removeItem('thread_id')
+    setMessages([])
+    setInput('')
+  }
+
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
       <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Agent Chat UI
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            LangGraph Agent와 대화하세요
-          </p>
+        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Agent Chat UI
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              LangGraph Agent와 대화하세요 (체크포인터 활성화)
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/dashboard"
+              className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+              aria-label="대시보드로 이동"
+              tabIndex={0}
+            >
+              대시보드
+            </Link>
+            {messages.length > 0 && (
+              <button
+                onClick={handleNewChat}
+                className="px-4 py-2 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                aria-label="새 대화 시작"
+                tabIndex={0}
+              >
+                새 대화
+              </button>
+            )}
+          </div>
         </div>
       </header>
 

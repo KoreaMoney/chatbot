@@ -10,6 +10,21 @@ from langgraph.graph import END, START
 from prompts.agent_prompts import AGENT_SYSTEM_PROMPT
 from tools.calculator_tool import CalculatorTool
 from tools.web_search_tool import WebSearchTool
+from tools.date_time_tool import DateTool, DateDifferenceTool, AddDaysTool
+from tools.text_transform_tool import TextCaseTool, UrlEncodeTool, UrlDecodeTool, Base64EncodeTool, Base64DecodeTool
+from tools.unit_converter_tool import TemperatureConverterTool, LengthConverterTool, WeightConverterTool
+from tools.random_generator_tool import RandomNumberTool, RandomStringTool, RandomPickTool
+from tools.string_utils_tool import StringInfoTool, ReverseStringTool, CountOccurrencesTool, ReplaceTextTool, ExtractNumbersTool
+from tools.json_tool import ParseJsonTool, ValidateJsonTool, GetJsonValueTool
+from tools.hash_tool import HashTool
+from tools.uuid_tool import UuidTool
+from tools.file_tool import ReadFileTool, WriteFileTool, ListFilesTool
+from tools.booking_tool import CreateBookingTool, SearchBookingsTool, CancelBookingTool, ModifyBookingTool
+from tools.hotel_tool import SearchHotelsTool, GetHotelRoomTypesTool, CheckHotelAvailabilityTool
+from tools.hospital_tool import SearchHospitalsTool, GetDepartmentInfoTool, CheckHospitalAvailabilityTool
+from tools.hair_salon_tool import SearchHairSalonsTool, GetHairServiceInfoTool, CheckHairSalonAvailabilityTool
+from tools.customer_service_tool import GetBookingStatusTool, GetCustomerBookingsTool, ProvideServiceInfoTool, HandleCustomerInquiryTool
+from tools.test_generator_tool import TestGeneratorTool
 
 
 def create_agent_node():
@@ -22,11 +37,63 @@ def create_agent_node():
     )
 
     # 도구 바인딩
-    tools = [CalculatorTool, WebSearchTool]
+    tools = [
+        CalculatorTool,
+        WebSearchTool,
+        DateTool,
+        DateDifferenceTool,
+        AddDaysTool,
+        TextCaseTool,
+        UrlEncodeTool,
+        UrlDecodeTool,
+        Base64EncodeTool,
+        Base64DecodeTool,
+        TemperatureConverterTool,
+        LengthConverterTool,
+        WeightConverterTool,
+        RandomNumberTool,
+        RandomStringTool,
+        RandomPickTool,
+        StringInfoTool,
+        ReverseStringTool,
+        CountOccurrencesTool,
+        ReplaceTextTool,
+        ExtractNumbersTool,
+        ParseJsonTool,
+        ValidateJsonTool,
+        GetJsonValueTool,
+        HashTool,
+        UuidTool,
+        ReadFileTool,
+        WriteFileTool,
+        ListFilesTool,
+        TestGeneratorTool,
+        CreateBookingTool,
+        SearchBookingsTool,
+        CancelBookingTool,
+        ModifyBookingTool,
+        SearchHotelsTool,
+        GetHotelRoomTypesTool,
+        CheckHotelAvailabilityTool,
+        SearchHospitalsTool,
+        GetDepartmentInfoTool,
+        CheckHospitalAvailabilityTool,
+        SearchHairSalonsTool,
+        GetHairServiceInfoTool,
+        CheckHairSalonAvailabilityTool,
+        GetBookingStatusTool,
+        GetCustomerBookingsTool,
+        ProvideServiceInfoTool,
+        HandleCustomerInquiryTool,
+    ]
     llm_with_tools = llm.bind_tools(tools)
 
     def agent_node(state: dict):
-        """에이전트 노드 - 사용자 입력을 처리하고 응답을 생성합니다."""
+        """에이전트 노드 - 사용자 입력을 처리하고 응답을 생성합니다.
+        
+        LangGraph API의 체크포인터를 통해 이전 대화의 모든 메시지가
+        state["messages"]에 자동으로 포함됩니다. 이를 통해 대화의 연속성을 유지합니다.
+        """
         messages = state.get("messages", [])
 
         # 메시지가 비어있지 않은지 확인
@@ -35,6 +102,7 @@ def create_agent_node():
             return {"messages": []}
 
         # 상태의 메시지 리스트에서 시스템 메시지 제외 (중복 방지)
+        # 체크포인터를 통해 이전 대화의 모든 메시지가 포함되어 있음
         non_system_messages = [
             msg for msg in messages if not isinstance(msg, SystemMessage)
         ]

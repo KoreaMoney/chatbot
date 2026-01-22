@@ -1,0 +1,15 @@
+[
+  {
+    "id": "BK20260122163742",
+    "service_type": "hotel",
+    "customer_name": "김도원",
+    "date": "2026-02-07",
+    "time": "",
+    "details": "신라호텔, 체크아웃 2026-02-08, 투숙 인원 2명",
+    "phone": "01022221515",
+    "status": "cancelled",
+    "created_at": "2026-01-22T16:37:42.940784",
+    "cancelled_at": "2026-01-22T16:46:15.336148",
+    "cancel_reason": "고객 요청"
+  }
+]

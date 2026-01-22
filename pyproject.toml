@@ -9,4 +9,7 @@ dependencies = [
     "langgraph>=1.0.6",
     "langgraph-cli[inmem]>=0.4.11",
     "python-dotenv>=1.2.1",
+    "duckduckgo-search>=6.1.0",
+    "pyrefly>=0.1.0",
+    "pytest>=7.0.0",
 ]
