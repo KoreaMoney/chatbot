@@ -31,6 +31,10 @@ def create_booking(service_type: str, customer_name: str, date: str, time: str,
                    details: str = "", phone: str = "") -> str:
     """새로운 예약을 생성합니다.
     
+    **중요**: 이 도구는 사용자가 명시적으로 예약을 요청했을 때만 사용해야 합니다.
+    단순히 정보를 조회하거나 가용성을 확인하는 경우에는 사용하지 마세요.
+    사용자가 "예약해줘", "예약하고 싶어", "예약해주세요" 등 명확한 예약 의사를 표현했을 때만 사용하세요.
+    
     Args:
         service_type: 서비스 유형 ("hotel", "hospital", "hair", "restaurant", "etc")
         customer_name: 고객 이름

@@ -1,11 +1,12 @@
 """헤어샵 예약 도구 - 헤어샵 예약 관련 기능을 제공합니다."""
 
 from langchain_core.tools import tool
+from duckduckgo_search import DDGS
 
 
 @tool
 def search_hair_salons(location: str, service_type: str = "") -> str:
-    """헤어샵을 검색합니다.
+    """헤어샵을 검색합니다. 실제 웹 검색을 통해 헤어샵 정보를 가져옵니다.
     
     Args:
         location: 헤어샵 위치 (도시명 또는 지역명)
@@ -15,65 +16,39 @@ def search_hair_salons(location: str, service_type: str = "") -> str:
         헤어샵 검색 결과를 반환합니다.
     """
     try:
-        salons = [
-            {
-                "name": f"{location} 프리미엄 헤어샵",
-                "address": f"{location}시 미용로 123",
-                "services": ["컷트", "펌", "염색", "클리닉", "스타일링"],
-                "rating": 4.7,
-                "price_range": "30,000원~150,000원",
-                "phone": "02-1111-2222",
-                "hours": "평일 10:00-20:00, 토요일 09:00-19:00"
-            },
-            {
-                "name": f"{location} 스타일 헤어",
-                "address": f"{location}시 패션로 456",
-                "services": ["컷트", "펌", "염색", "스타일링"],
-                "rating": 4.5,
-                "price_range": "25,000원~120,000원",
-                "phone": "02-2222-3333",
-                "hours": "평일 09:00-21:00, 토요일 09:00-20:00"
-            },
-            {
-                "name": f"{location} 뷰티 살롱",
-                "address": f"{location}시 아름다운길 789",
-                "services": ["컷트", "펌", "염색", "클리닉"],
-                "rating": 4.6,
-                "price_range": "20,000원~100,000원",
-                "phone": "02-3333-4444",
-                "hours": "평일 10:00-19:00, 토요일 10:00-18:00"
-            }
-        ]
-        
-        # 서비스 유형 필터링
+        # 실제 웹 검색을 수행합니다
+        search_query = f"{location} 헤어샵"
         if service_type:
-            service_type_str = str(service_type)
-            salons = [
-                s
-                for s in salons
-                if isinstance(svcs := s.get("services", []), list)
-                and service_type_str in svcs
-            ]
+            search_query += f" {service_type}"
         
-        if not salons:
-            return f"{location} 지역에서 {service_type} 서비스를 제공하는 헤어샵을 찾을 수 없습니다."
-        
-        result = f"""{location} 지역 헤어샵 검색 결과:
+        with DDGS() as ddgs:
+            # 최대 10개의 검색 결과를 가져옵니다
+            results = list(ddgs.text(search_query, max_results=10))
+            
+            if not results:
+                return f"'{location}' 지역의 헤어샵 검색 결과를 찾을 수 없습니다."
+            
+            # 검색 결과를 포맷팅합니다
+            result = f"""{location} 지역 헤어샵 검색 결과:
 {f'{service_type} 서비스 제공 헤어샵' if service_type else ''}
 
 """
-        for i, salon in enumerate(salons, 1):
-            result += f"""{i}. {salon['name']}
-   주소: {salon['address']}
-   평점: {'⭐' * int(salon['rating'])} ({salon['rating']})
-   전화: {salon['phone']}
-   영업 시간: {salon['hours']}
-   가격대: {salon['price_range']}
-   제공 서비스: {', '.join(salon['services'])}
+            
+            for i, search_result in enumerate(results[:5], 1):  # 상위 5개만 표시
+                title = search_result.get("title", "제목 없음")
+                body = search_result.get("body", "내용 없음")
+                href = search_result.get("href", "")
+                
+                result += f"""{i}. {title}
+   {body[:150]}...
+   출처: {href}
    
 """
-        
-        return result
+            
+            if service_type:
+                result += f"\n{service_type} 서비스 예약을 원하시면 헤어샵명을 알려주세요."
+            
+            return result
     
     except Exception as e:
         return f"헤어샵 검색 오류: {str(e)}"

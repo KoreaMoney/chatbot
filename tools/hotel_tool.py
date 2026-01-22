@@ -1,12 +1,13 @@
 """호텔 예약 도구 - 호텔 예약 관련 기능을 제공합니다."""
 
 from langchain_core.tools import tool
+from duckduckgo_search import DDGS
 
 
 @tool
 def search_hotels(location: str, check_in: str = "", check_out: str = "", 
                  guests: int = 1) -> str:
-    """호텔을 검색합니다.
+    """호텔을 검색합니다. 실제 웹 검색을 통해 호텔 정보를 가져옵니다.
     
     Args:
         location: 호텔 위치 (도시명 또는 지역명)
@@ -18,52 +19,45 @@ def search_hotels(location: str, check_in: str = "", check_out: str = "",
         호텔 검색 결과를 반환합니다.
     """
     try:
-        # 실제 구현에서는 외부 API를 호출하지만, 여기서는 예시 데이터를 반환
-        hotels = [
-            {
-                "name": f"{location} 그랜드 호텔",
-                "rating": 4.5,
-                "price": 150000,
-                "available": True,
-                "amenities": ["와이파이", "주차", "조식", "수영장"]
-            },
-            {
-                "name": f"{location} 리조트",
-                "rating": 4.2,
-                "price": 120000,
-                "available": True,
-                "amenities": ["와이파이", "주차", "피트니스"]
-            },
-            {
-                "name": f"{location} 비즈니스 호텔",
-                "rating": 4.0,
-                "price": 80000,
-                "available": True,
-                "amenities": ["와이파이", "주차"]
-            }
-        ]
+        # 실제 웹 검색을 수행합니다
+        search_query = f"{location} 호텔"
+        if check_in and check_out:
+            search_query += f" {check_in} {check_out}"
         
-        result = f"""{location} 지역 호텔 검색 결과:
+        with DDGS() as ddgs:
+            # 최대 10개의 검색 결과를 가져옵니다
+            results = list(ddgs.text(search_query, max_results=10))
+            
+            if not results:
+                return f"'{location}' 지역의 호텔 검색 결과를 찾을 수 없습니다."
+            
+            # 검색 결과를 포맷팅합니다
+            result = f"""{location} 지역 호텔 검색 결과:
 
 """
-        for i, hotel in enumerate(hotels, 1):
+            
             date_info = ""
             if check_in and check_out:
                 date_info = f"체크인: {check_in}, 체크아웃: {check_out}\n   "
             
-            result += f"""{i}. {hotel['name']}
-   평점: {'⭐' * int(hotel['rating'])} ({hotel['rating']})
-   가격: {hotel['price']:,}원/박
+            for i, search_result in enumerate(results[:5], 1):  # 상위 5개만 표시
+                title = search_result.get("title", "제목 없음")
+                body = search_result.get("body", "내용 없음")
+                href = search_result.get("href", "")
+                
+                result += f"""{i}. {title}
+   {body[:150]}...
+   출처: {href}
    {date_info}투숙 인원: {guests}명
-   시설: {', '.join(hotel['amenities'])}
-   예약 가능: {'예' if hotel['available'] else '아니오'}
    
 """
-        
-        if check_in and check_out:
-            result += f"\n체크인: {check_in}, 체크아웃: {check_out} 기준으로 검색되었습니다."
-        
-        return result
+            
+            if check_in and check_out:
+                result += f"\n체크인: {check_in}, 체크아웃: {check_out} 기준으로 검색되었습니다."
+            else:
+                result += "\n더 자세한 정보나 예약을 원하시면 체크인/체크아웃 날짜를 알려주세요."
+            
+            return result
     
     except Exception as e:
         return f"호텔 검색 오류: {str(e)}"
