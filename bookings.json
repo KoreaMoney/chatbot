@@ -22,5 +22,27 @@
     "phone": "",
     "status": "confirmed",
     "created_at": "2026-01-22T18:19:48.271415"
+  },
+  {
+    "id": "BK20260122183429",
+    "service_type": "hospital",
+    "customer_name": "고객",
+    "date": "2023-10-30",
+    "time": "10:00",
+    "details": "판교잘보는연세안과의원",
+    "phone": "",
+    "status": "confirmed",
+    "created_at": "2026-01-22T18:34:29.158558"
+  },
+  {
+    "id": "BK20260122184526",
+    "service_type": "hospital",
+    "customer_name": "김겨울",
+    "date": "2026-01-23",
+    "time": "14:00",
+    "details": "판교잘보는연세안과의원",
+    "phone": "",
+    "status": "confirmed",
+    "created_at": "2026-01-22T18:45:26.965595"
   }
 ]

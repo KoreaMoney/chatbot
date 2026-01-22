@@ -31,22 +31,69 @@ def create_booking(service_type: str, customer_name: str, date: str, time: str,
                    details: str = "", phone: str = "") -> str:
     """새로운 예약을 생성합니다.
     
-    **중요**: 이 도구는 사용자가 명시적으로 예약을 요청했을 때만 사용해야 합니다.
-    단순히 정보를 조회하거나 가용성을 확인하는 경우에는 사용하지 마세요.
-    사용자가 "예약해줘", "예약하고 싶어", "예약해주세요" 등 명확한 예약 의사를 표현했을 때만 사용하세요.
+    **매우 중요**: 이 도구를 사용하기 전에 반드시 다음 조건을 모두 만족해야 합니다:
+    
+    1. 사용자가 명시적으로 예약을 요청했을 때만 사용 (예: "예약해줘", "예약하고 싶어", "예약해주세요")
+    2. 단순히 정보를 조회하거나 가용성을 확인하는 경우에는 절대 사용하지 마세요
+    3. **필수 정보가 모두 수집되었는지 확인**:
+       - customer_name: 반드시 사용자로부터 받은 실제 이름이어야 함. "고객", "미정" 같은 기본값 사용 금지
+       - date: 반드시 사용자로부터 받은 날짜여야 함. YYYY-MM-DD 형식
+       - time: 반드시 사용자로부터 받은 시간이어야 함. HH:MM 형식
+       - service_type: 서비스 유형이 명확해야 함
+       - details: 병원명, 호텔명 등 상세 정보
+    4. **필수 정보가 하나라도 없으면 이 도구를 절대 사용하지 마세요. 먼저 사용자에게 물어보세요**
+    5. **반드시 예약 정보를 사용자에게 보여주고 확인을 받은 후에만 사용하세요**
+    6. 사용자가 "네", "예", "확인", "진행", "예약해줘" 등으로 명시적으로 확인했을 때만 사용
+    7. 사용자가 확인하지 않았거나 거부한 경우에는 절대 사용하지 마세요
+    
+    **절대 하지 말아야 할 것**:
+    - 필수 정보(고객명, 날짜, 시간) 없이 이 도구 호출 금지
+    - "고객", "미정", "TBD" 같은 기본값이나 임의의 값으로 예약 생성 금지
+    - 사용자에게 물어보지 않고 추측해서 예약 생성 금지
+    - 예약 정보를 먼저 표시하고 사용자 확인을 받지 않고 바로 이 도구를 호출 금지
     
     Args:
         service_type: 서비스 유형 ("hotel", "hospital", "hair", "restaurant", "etc")
-        customer_name: 고객 이름
-        date: 예약 날짜 (YYYY-MM-DD 형식)
-        time: 예약 시간 (HH:MM 형식)
-        details: 추가 상세 정보
+        customer_name: 고객 이름 (사용자로부터 받은 실제 이름, 기본값 사용 금지)
+        date: 예약 날짜 (YYYY-MM-DD 형식, 사용자로부터 받은 날짜)
+        time: 예약 시간 (HH:MM 형식, 사용자로부터 받은 시간)
+        details: 추가 상세 정보 (병원명, 호텔명 등)
         phone: 연락처 (선택사항)
     
     Returns:
         예약 생성 결과를 반환합니다.
     """
     try:
+        # 필수 정보 검증
+        if not customer_name or customer_name.strip() == "":
+            return "오류: 고객명이 필요합니다. 사용자에게 고객명을 먼저 물어보세요."
+        
+        # 기본값이나 임의의 값 사용 금지
+        invalid_names = ["고객", "미정", "TBD", "미지정", "없음", "알 수 없음", "unknown", "customer"]
+        if customer_name.strip() in invalid_names:
+            return f"오류: '{customer_name}'는 유효한 고객명이 아닙니다. 사용자에게 실제 고객명을 먼저 물어보세요."
+        
+        if not date or date.strip() == "":
+            return "오류: 예약 날짜가 필요합니다. 사용자에게 날짜를 먼저 물어보세요."
+        
+        # 날짜 형식 검증 (YYYY-MM-DD)
+        try:
+            datetime.strptime(date, "%Y-%m-%d")
+        except ValueError:
+            return f"오류: 날짜 형식이 올바르지 않습니다. YYYY-MM-DD 형식이어야 합니다. (입력된 값: {date})"
+        
+        if not time or time.strip() == "":
+            return "오류: 예약 시간이 필요합니다. 사용자에게 시간을 먼저 물어보세요."
+        
+        # 시간 형식 검증 (HH:MM)
+        try:
+            datetime.strptime(time, "%H:%M")
+        except ValueError:
+            return f"오류: 시간 형식이 올바르지 않습니다. HH:MM 형식이어야 합니다. (입력된 값: {time})"
+        
+        if not service_type or service_type.strip() == "":
+            return "오류: 서비스 유형이 필요합니다."
+        
         bookings = load_bookings()
         
         # 예약 ID 생성
